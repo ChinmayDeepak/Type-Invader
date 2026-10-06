@@ -1,0 +1,129 @@
+/* TYPE INVADERS - game shell styles (extracted from the original build) */
+:root{
+  --phos:#a8e05f; --beam:#79ff4d; --paper:#e8f0e2;
+  --pix:"Press Start 2P",ui-monospace,monospace;
+  --scr:"Silkscreen",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;color:var(--paper);
+  font-family:var(--scr);touch-action:manipulation}
+/* Only lock scrolling while the engine is mounted. This rule used to apply to
+   every page, so the leaderboard and profile could not scroll after a visit
+   to /play. The engine adds and removes .ti-game itself. */
+body.ti-game{overflow:hidden}
+/* --ti-nav is measured from the real navbar by the engine, so the tube starts
+   below it and the sticky navbar can never cover the score or accuracy. */
+#frame{position:fixed;left:0;right:0;bottom:0;top:var(--ti-nav,58px);
+  padding:clamp(6px,1.4vmin,18px);background:#000}
+#tube{position:relative;width:100%;height:100%;overflow:hidden;border-radius:14px;background:#080b0a;
+  box-shadow:0 0 0 2px #101512,0 0 70px rgba(0,0,0,.9) inset;transform-origin:center}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated}
+/* The CRT overlay sits at z20/21. Anything the player has to READ is layered
+   above it, so scanlines and the vignette never eat a letter. The 3D scene
+   stays below and keeps the full tube treatment. */
+#ui{z-index:22;pointer-events:none}
+#fx{position:absolute;inset:0;pointer-events:none;z-index:20;border-radius:14px;
+  background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 42%,rgba(0,0,0,.92) 100%),
+    repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.30) 2px 4px)}
+#fx.noscan{background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 45%,rgba(0,0,0,.9) 100%)}
+#flicker{position:absolute;inset:0;pointer-events:none;z-index:21;background:#bff59a;opacity:0;mix-blend-mode:overlay}
+.off #tube{animation:tubeoff .5s ease forwards}
+@keyframes tubeoff{0%{transform:scale(1,1);filter:brightness(1)}
+  45%{transform:scale(1.02,.006);filter:brightness(3)}
+  100%{transform:scale(.2,.0015);filter:brightness(6);opacity:.9}}
+.hide{display:none!important}
+
+.screen{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:clamp(12px,2.6vh,28px);padding:6% 5%;text-align:center}
+.dim{background:rgba(3,6,5,.84)}
+h1{font-family:var(--pix);font-size:clamp(18px,4.4vw,54px);line-height:1.3;color:#c6e88a;
+  text-shadow:0 0 18px rgba(168,224,95,.35),0 3px 0 #16210e}
+.tag{font-family:var(--pix);font-size:clamp(8px,1.5vw,17px);letter-spacing:.7em;text-indent:.7em;
+  color:var(--paper);text-shadow:0 2px 0 #0d1409;
+  animation:reloadSpacing 2s ease-in-out infinite;
+}
+@keyframes reloadSpacing {
+  0%{
+    letter-spacing: 0;
+  }
+  50%{
+    letter-spacing: .7em;
+  }
+  100%{
+    letter-spacing: 0;
+  }
+}
+h2{font-family:var(--pix);font-size:clamp(13px,2.6vw,28px);color:#c6e88a}
+.menu{display:flex;flex-direction:column;gap:clamp(8px,1.8vh,16px);margin-top:clamp(4px,1.6vh,18px)}
+.item{font-family:var(--pix);font-size:clamp(12px,2.2vw,26px);color:var(--paper);background:none;border:0;
+  cursor:pointer;padding:6px 10px;position:relative;text-shadow:0 3px 0 rgba(0,0,0,.6)}
+.item::before{content:"👽";position:absolute;left:-1.6em;opacity:0;transform:translateX(-6px);
+  transition:.12s;font-size:.95em;text-shadow:none}
+.item:hover,.item:focus-visible,.item.sel{color:#dcf5b4;outline:none}
+.item:hover::before,.item:focus-visible::before,.item.sel::before{opacity:1;transform:translateX(0)}
+.note{font-size:clamp(10px,1.5vw,15px);color:#7d9463;line-height:2;max-width:52ch; transform: translateY(25px);}
+kbd{border:1px solid #3d4d2c;padding:1px 6px;color:#a8e05f}
+.rows{display:flex;flex-direction:column;gap:2px;width:min(560px,88vw)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;
+  background:rgba(168,224,95,.045);border-left:2px solid #2c3a1e}
+.row .lbl{font-size:clamp(11px,1.5vw,15px);color:#cfe0bb;text-align:left}
+.row .lbl i{display:block;font-style:normal;font-size:11px;color:#6d8353;margin-top:2px}
+.seg{display:flex;gap:3px;flex:none}
+.seg button{font-family:var(--scr);font-size:clamp(10px,1.3vw,13px);color:#8fa87a;background:#101a0d;
+  border:1px solid #2c3a1e;padding:6px 9px;cursor:pointer}
+.seg button.on{background:#a8e05f;color:#0a0f0d;border-color:#a8e05f}
+
+#hud{position:absolute;inset:0;z-index:23;pointer-events:none;opacity:0;transition:opacity .5s}
+#hud.on{opacity:1}
+.hScore{position:absolute;top:3.2%;left:3.4%;font-size:clamp(14px,2.4vw,28px);color:#b9e874;
+  text-shadow:0 0 12px rgba(121,255,77,.55),0 2px 0 #0a0f0d}
+.hAcc{position:absolute;top:3.2%;right:3.4%;font-size:clamp(14px,2.4vw,28px);color:#b9e874;white-space:nowrap;
+  text-shadow:0 0 12px rgba(121,255,77,.55),0 2px 0 #0a0f0d}
+.hAcc.bad{animation:accbad .45s ease}
+@keyframes accbad{0%,60%{color:#ff5252;text-shadow:0 0 16px rgba(255,60,60,.8)}100%{color:#b9e874}}
+.hHp{position:absolute;bottom:3.4%;left:50%;transform:translateX(-50%);font-size:clamp(14px,2.4vw,28px);
+  color:#ff5252;white-space:nowrap;text-shadow:0 0 14px rgba(255,59,59,.6),0 2px 0 #0a0f0d}
+.hHp.low{animation:pulse .7s infinite}
+@keyframes pulse{50%{opacity:.4}}
+.hLoc{position:absolute;bottom:3.6%;left:3.4%;font-size:clamp(10px,1.4vw,15px);color:#6f8a52;letter-spacing:.14em}
+.hVol{position:absolute;top:9.6%;left:3.4%;display:flex;align-items:center;gap:7px;pointer-events:none}
+#hud.on .hVol{pointer-events:auto}
+.hVol .ic{font-family:var(--scr);font-size:14px;color:#7f9a62;line-height:1}
+.hVol .num{font-family:var(--scr);font-size:clamp(11px,1.5vw,15px);color:#b9e874;min-width:2.5em;
+  text-shadow:0 0 10px rgba(121,255,77,.45),0 2px 0 #0a0f0d}
+.vslider{-webkit-appearance:none;appearance:none;width:clamp(88px,11vw,150px);height:11px;
+  border:1px solid #33421f;outline:none;cursor:pointer;background:#101a0d}
+.vslider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:9px;height:19px;
+  background:#a8e05f;border:0;border-radius:0;cursor:pointer;box-shadow:0 0 8px rgba(121,255,77,.5)}
+.vslider::-moz-range-thumb{width:9px;height:19px;background:#a8e05f;border:0;border-radius:0;
+  cursor:pointer;box-shadow:0 0 8px rgba(121,255,77,.5)}
+.vslider:focus-visible{border-color:#a8e05f}
+.hCombo{position:absolute;bottom:3.6%;right:3.4%;font-size:clamp(10px,1.4vw,15px);color:#6f8a52;letter-spacing:.14em}
+#objective{position:absolute;left:50%;top:24%;transform:translateX(-50%);z-index:24;text-align:center;
+  font-family:var(--pix);font-size:clamp(11px,2vw,22px);color:#dcf5b4;opacity:0;pointer-events:none;
+  text-shadow:0 0 20px rgba(121,255,77,.5),0 3px 0 #0a0f0d;white-space:nowrap}
+#objective small{display:block;font-family:var(--scr);font-size:.62em;letter-spacing:.34em;color:#8fb463;margin-top:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#22301a;border:1px solid #22301a;width:min(600px,92vw)}
+.stats div{background:#0b120a;padding:10px 8px}
+.stats span{display:block;font-size:10px;letter-spacing:.16em;color:#6d8353;margin-bottom:6px}
+.stats b{font-family:var(--pix);font-size:clamp(11px,1.8vw,18px);color:#c6e88a;font-weight:400}
+#snd{position:absolute;top:3.2%;right:3.4%;z-index:31;display:flex;gap:2px}
+#snd.game{top:9.8%;opacity:.4}            /* in game it tucks under the accuracy line */
+#snd.game:hover{opacity:1}
+#snd button{width:32px;height:32px;padding:0;background:none;border:0;position:relative;
+  color:#5f7a3a;cursor:pointer;font-family:var(--scr);font-size:17px;line-height:32px}
+#snd button:hover,#snd button:focus-visible{color:#a8e05f;outline:none}
+#snd button.off{color:#3e4d31}
+#snd button.off::after{content:"";position:absolute;left:5px;right:5px;top:calc(50% - 1px);
+  height:2px;background:#8d3b32;transform:rotate(-36deg)}
+#snd button.gone{opacity:.25;cursor:default}
+/* admin demo assist - amber so it can never be mistaken for a normal control */
+#hack{position:absolute;left:50%;bottom:10.6%;transform:translateX(-50%);z-index:31;
+  font-family:var(--pix);font-size:clamp(8px,1.2vw,12px);letter-spacing:.14em;
+  color:#ffd166;background:rgba(26,15,4,.86);border:1px solid #6b4b16;
+  padding:7px 13px;cursor:pointer;opacity:.55;transition:opacity .15s,box-shadow .15s}
+#hack:hover,#hack:focus-visible{opacity:1;outline:none;color:#fff0c2;border-color:#ffd166;
+  box-shadow:0 0 14px rgba(255,209,102,.35)}
+#hack.cool{opacity:.18;cursor:default;box-shadow:none}
+#catch{position:absolute;left:-9999px;opacity:0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}

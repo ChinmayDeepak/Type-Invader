@@ -1,0 +1,209 @@
+/* App shell — the chrome around the game.
+   game.css owns everything inside the game host and is loaded by engine.js. */
+
+:root {
+  --phos: #a8e05f;
+  --ink: #e8f0e2;
+  --bg: #080b0a;
+  --panel: #0e1613;
+  --line: #22302b;
+  --muted: #7d9384;
+  --danger: #ff6b6b;
+  --ok: #6ee7a8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+.content { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 24px 20px 60px; }
+.loading { padding: 40px; color: var(--muted); }
+
+/* ── navbar ─────────────────────────────────────────────────────── */
+.navbar {
+  display: flex; align-items: center; gap: 20px;
+  padding: 14px 22px; border-bottom: 1px solid var(--line); background: #0b100e;
+  position: sticky; top: 0; z-index: 50;
+}
+.brand { color: var(--phos); font-weight: 700; letter-spacing: 1px; text-decoration: none; }
+.brand span { color: var(--ink); opacity: .7; }
+.nav-links { display: flex; gap: 4px; }
+.nav-link {
+  color: var(--muted); text-decoration: none; padding: 7px 12px;
+  border-radius: 6px; font-size: 14px;
+}
+.nav-link:hover { color: var(--ink); background: #142019; }
+.nav-link.active { color: var(--phos); background: #16241c; }
+.nav-user { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.nav-user .who { font-size: 13px; line-height: 1.2; }
+.nav-user .who i { display: block; font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* ── buttons ────────────────────────────────────────────────────── */
+.btn {
+  border: 1px solid var(--line); border-radius: 7px; padding: 8px 16px;
+  font: inherit; font-size: 13px; cursor: pointer; text-decoration: none;
+  display: inline-block; background: transparent; color: var(--ink);
+}
+.btn.solid { background: var(--phos); color: #0a1207; border-color: var(--phos); font-weight: 700; }
+.btn.solid:hover { background: #bcf074; }
+.btn.ghost:hover { background: #16241c; }
+.btn.danger { border-color: #4a2020; color: var(--danger); }
+.btn.danger:hover { background: #2a1414; }
+.btn.lg { padding: 12px 24px; font-size: 15px; }
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── panels, forms, tables ──────────────────────────────────────── */
+.panel {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 22px; margin-bottom: 20px;
+}
+.panel h2 { font-size: 16px; color: var(--phos); margin-bottom: 14px; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; }
+.muted { color: var(--muted); font-size: 13px; }
+.error { color: var(--danger); font-size: 13px; margin: 8px 0; }
+.ok { color: var(--ok); font-size: 13px; margin: 8px 0; }
+.warn { color: #e8c96b; font-size: 13px; margin-bottom: 10px; }
+
+.form-page { display: flex; justify-content: center; padding-top: 40px; }
+.form { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
+.form.wide { max-width: 100%; }
+.form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.form label.check { flex-direction: row; align-items: center; gap: 8px; }
+.form input, .form select, .form textarea {
+  background: #060a08; border: 1px solid var(--line); border-radius: 6px;
+  padding: 9px 11px; color: var(--ink); font: inherit; font-size: 14px;
+}
+.form input:focus, .form select:focus, .form textarea:focus {
+  outline: none; border-color: var(--phos);
+}
+.row-actions { display: flex; gap: 8px; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table th {
+  text-align: left; color: var(--muted); font-weight: 400;
+  border-bottom: 1px solid var(--line); padding: 8px 10px;
+}
+.table td { padding: 9px 10px; border-bottom: 1px solid #16211c; }
+.table td.num { text-align: right; }
+.table tr.cleared td { color: var(--phos); }
+.table tr.banned td { opacity: .5; }
+
+.rank { padding: 2px 7px; border-radius: 4px; background: #16241c; font-weight: 700; }
+.rank.r-S { color: #ffd166; }
+.rank.r-A { color: var(--phos); }
+.rank.r-B { color: #79c9ff; }
+
+.pager { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+.filter { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.filter select {
+  background: #060a08; color: var(--ink); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 13px;
+}
+
+.tabs { display: flex; gap: 6px; margin-top: 16px; }
+.tab {
+  background: transparent; border: 1px solid var(--line); border-radius: 7px;
+  padding: 7px 14px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer;
+}
+.tab.on { color: var(--phos); border-color: var(--phos); }
+
+/* ── stats ──────────────────────────────────────────────────────── */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px; margin-top: 6px;
+}
+.stat { background: #0a110e; border: 1px solid var(--line); border-radius: 9px; padding: 14px; }
+.stat b { display: block; font-size: 22px; color: var(--phos); }
+.stat span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.chart { margin-top: 10px; }
+
+/* ── home ───────────────────────────────────────────────────────── */
+.hero { text-align: center; padding: 50px 20px 40px; }
+.hero h1 { font-size: 40px; letter-spacing: 4px; color: var(--phos); }
+.hero p { max-width: 560px; margin: 14px auto 0; color: var(--muted); line-height: 1.7; font-size: 14px; }
+.hero-actions { display: flex; gap: 12px; justify-content: center; margin-top: 26px; flex-wrap: wrap; }
+.mini-board { list-style: none; }
+.mini-board li { display: flex; gap: 14px; padding: 8px 0; border-bottom: 1px solid #16211c; font-size: 14px; }
+.mini-board .pos { color: var(--muted); width: 34px; }
+.mini-board .name { flex: 1; }
+.mini-board .score { color: var(--phos); }
+
+/* ── game host ──────────────────────────────────────────────────── */
+/* The engine renders a fixed-position #frame, so this only reserves space
+   and shows a placeholder until the loop takes over. */
+/* difficulty badge on the leaderboard and match history */
+.diff {
+  display: inline-block; padding: 1px 7px; border-radius: 4px;
+  font-size: 11px; letter-spacing: .08em; border: 1px solid currentColor;
+}
+.diff.d-EASY   { color: #7ddf9a; }
+.diff.d-NORMAL { color: #ffd166; }
+.diff.d-HARD   { color: #ff7a7a; }
+.diff.d-NA     { color: #6f7d76; border-color: transparent; }
+
+.play { position: relative; }
+
+/* While a run is live the engine puts .ti-running on <body>. Navigating away
+   mid-run would abandon the run row, so every nav control is disabled until
+   the player dies, wins, or quits to the game's own menu. */
+body.ti-running .nav-links .nav-link,
+body.ti-running .nav-user .btn,
+body.ti-running .nav-user .who,
+body.ti-running .brand {
+  pointer-events: none; opacity: .3; filter: grayscale(1);
+}
+body.ti-running .navbar::after {
+  content: "run in progress"; margin-left: auto;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--phos); opacity: .75;
+}
+body.ti-running .nav-user { margin-left: 14px; }
+/* The engine's #frame is position:fixed and covers the whole viewport, so a
+   normally-flowed status line is painted underneath it and is invisible.
+   Float the save result over the game instead. */
+.play > .ok, .play > .error, .play > .warn {
+  position: fixed; top: 68px; left: 50%; transform: translateX(-50%);
+  z-index: 60; margin: 0; max-width: min(560px, 92vw); text-align: center;
+  padding: 9px 15px; border-radius: 7px; font-size: 13px;
+  background: rgba(6, 10, 8, .94); border: 1px solid currentColor;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .55);
+}
+.game-host { min-height: 60vh; }
+
+/* Tables stay usable on small displays without moving the whole page sideways. */
+.panel-head { gap: 16px; flex-wrap: wrap; }
+.table-tools { display: flex; gap: 14px; flex-wrap: wrap; align-items: end; margin: 22px 0; }
+.table-tools .filter { flex-direction: column; align-items: flex-start; gap: 6px; }
+.table-search { display: flex; gap: 8px; align-items: end; }
+.filter input { background: #060a08; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font: inherit; min-width: 0; }
+.table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; }
+.table-scroll .table { min-width: 720px; }
+.table-scroll th { background: #0b130f; white-space: nowrap; }
+.table-scroll td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.table tbody tr:hover { background: #132019; }
+.table-state { padding: 36px 0; text-align: center; }
+.result { display: inline-block; font-size: 11px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; }
+.result-win { color: var(--ok); background: #142c20; }
+.result-over { color: #b6c3b9; background: #1b251f; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.pager { justify-content: space-between; flex-wrap: wrap; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, .table-scroll:focus-visible { outline: 2px solid var(--phos); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .content { padding: 18px 12px 36px; }
+  .panel { padding: 16px; }
+  .navbar { flex-wrap: wrap; gap: 8px; padding: 12px; }
+  .nav-links { flex-wrap: wrap; }
+  .nav-user { margin-left: 0; }
+  .table-search { width: 100%; }
+  .table-search .filter { flex: 1; min-width: 0; }
+  .filter input { width: 100%; }
+  .row-actions { flex-wrap: wrap; }
+  .hero h1 { font-size: 28px; }
+}
