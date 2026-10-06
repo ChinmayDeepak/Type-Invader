@@ -54,7 +54,7 @@ export const GAME_TEMPLATE = `
         <div class="seg" data-set="scan"><button data-v="0">OFF</button><button data-v="1">ON</button></div></div>
       <div class="row"><div class="lbl">GAME SOUND<i>zaps, hits, alien noise</i></div>
         <div class="seg" data-set="snd"><button data-v="0">OFF</button><button data-v="1">ON</button></div></div>
-      <div class="row"><div class="lbl">MUSIC<i>background track — plays while you are in a run</i></div>
+      <div class="row"><div class="lbl">MUSIC<i>lobby and game background tracks</i></div>
         <div class="seg" data-set="music"><button data-v="0">OFF</button><button data-v="1">ON</button></div></div>
       <div class="row"><div class="lbl">MUSIC VOLUME<i>0 – 100, also on the HUD under your score</i></div>
         <div class="seg"><input id="volS" class="vslider" type="range" min="0" max="100" step="5" value="45"

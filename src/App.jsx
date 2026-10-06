@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { unlockLobbyMusic } from "./lobbyMusic.js";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { setupError } from "./api/supabase.js";
 import Navbar from "./components/Navbar.jsx";
@@ -16,7 +18,20 @@ import Admin from "./pages/Admin.jsx";
  * Chinmay Deepak Chandavar | 1NT23CB013 | CSBS
  */
 export default function App() {
+  const [entered, setEntered] = useState(false);
+  function enter() {
+    unlockLobbyMusic();
+    setEntered(true);
+  }
   if (setupError) return <main className="content"><section className="panel" role="alert"><h1>Finish setting up Type Invaders</h1><p>{setupError}</p><p>After changing Vercel environment variables, redeploy the project.</p></section></main>;
+  if (!entered) return (
+    <button className="entry-screen" onClick={enter} autoFocus>
+      <span className="entry-title">TYPE INVADERS</span>
+      <span className="entry-subtitle">RELOADED</span>
+      <span className="entry-prompt">CLICK ANYWHERE TO START</span>
+      <span className="entry-hint">Tap or press Enter to continue</span>
+    </button>
+  );
   return (
     <div className="app">
       <Navbar />

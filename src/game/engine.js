@@ -11,6 +11,7 @@
    ===================================================================== */
 import { GAME_TEMPLATE } from "./template.js";
 import "./game.css";
+import { startLobbyMusic, stopLobbyMusic, configureLobbyMusic } from "../lobbyMusic.js";
 
 export function startTypeInvader(host, opts = {}) {
   host.innerHTML = GAME_TEMPLATE;
@@ -141,7 +142,6 @@ export function startTypeInvader(host, opts = {}) {
   const MUSIC_DELAY=1.0;
   const MUS={els:{},dead:{},key:null,playing:false,wait:0,next:null};
   const musTarget=()=>(MUS.playing&&CFG.music)?clamp(CFG.vol,0,100)/100:0;
-  const musicMissing=()=>Object.keys(MUSIC_SRC).every(k=>MUS.dead[k]);
   function trackEl(key){
     if(MUS.dead[key])return null;
     if(MUS.els[key])return MUS.els[key];
@@ -308,14 +308,14 @@ export function startTypeInvader(host, opts = {}) {
     const quiet=!CFG.music||!CFG.vol;
     $('mSfx').classList.toggle('off',!CFG.snd);
     $('mMusic').classList.toggle('off',quiet);
-    const noFiles=musicMissing();
-    $('mMusic').classList.toggle('gone',noFiles);
-    $('mMusic').title=noFiles?'no music files in public/':(quiet?'Music off':'Music on \u00b7 '+CFG.vol);
+    configureLobbyMusic(CFG.music,CFG.vol);
+    $('mMusic').classList.remove('gone');
+    $('mMusic').title=quiet?'Music off':'Music on \u00b7 '+CFG.vol;
     $('mSfx').title=CFG.snd?'Game sound on':'Game sound off';
     // both sliders show the same number and the same filled track
     const fill='linear-gradient(90deg,#5f8a34 0 '+CFG.vol+'%,#101a0d '+CFG.vol+'% 100%)';
     for(const id of['vol','volS']){const el=$(id);if(!el)continue;
-      el.value=CFG.vol;el.style.background=fill;el.disabled=noFiles}
+      el.value=CFG.vol;el.style.background=fill;el.disabled=false}
     $('volN').textContent=CFG.vol;$('volSN').textContent=CFG.vol;
     // turning music back on mid-run picks the track straight back up
     if(CFG.music&&MUS.playing)musicSet(true,false);
@@ -863,7 +863,7 @@ export function startTypeInvader(host, opts = {}) {
   on(host,'click',e=>{
     const b=e.target.closest('[data-go]');if(!b)return;SND.ui();ac();
     const go=b.dataset.go;
-    if(go==='play'){reset(true);hideAll();$('hud').classList.add('on');$('snd').classList.add('game');
+    if(go==='play'){stopLobbyMusic();reset(true);hideAll();$('hud').classList.add('on');$('snd').classList.add('game');
       showHack(true);
       document.body.classList.add('ti-running');
       objective('STAGE 1','ROOKIE FACTORY',1.3);SND.stage();
@@ -871,9 +871,11 @@ export function startTypeInvader(host, opts = {}) {
     else if(go==='settings'){G.state='settings';show('settings')}
     else if(go==='menu'){G.state='menu';show('menu');$('hud').classList.remove('on');
       $('snd').classList.remove('game');showHack(false);musicSet(false);musicStop();
-      document.body.classList.remove('ti-running');reset(false)}
+      document.body.classList.remove('ti-running');reset(false);
+      for(const audio of Object.values(MUS.els)){audio.pause();audio.volume=0}
+      startLobbyMusic()}
     else if(go==='resume')pause(false);
-    else if(go==='exit'){musicSet(false);document.body.classList.add('off');
+    else if(go==='exit'){stopLobbyMusic();musicSet(false);document.body.classList.add('off');
       later(()=>{document.body.classList.remove('off');G.state='exit';show('exit')},520)}
   });
   const mmss=t=>{const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+(s<10?'0':'')+s};
@@ -1477,6 +1479,7 @@ export function startTypeInvader(host, opts = {}) {
       if (A.c && A.c.state !== 'closed') A.c.close().catch(() => {});
       document.body.classList.remove('ti-game', 'ti-running', 'off');
       host.innerHTML = "";
+      startLobbyMusic();
     },
   };
 }
