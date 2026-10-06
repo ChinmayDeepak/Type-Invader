@@ -3,7 +3,7 @@
 update public.ti_profiles
 set role = 'ADMIN'
 where id = (
-  select id from auth.users where lower(email) = lower('YOUR_REGISTERED_EMAIL@example.com')
+  select id from auth.users where lower(email) = lower('chinmaydc2@gmail.com')
 )
 returning username, role;
 -- Exactly one returned row means success. Zero rows means the email was not found.
