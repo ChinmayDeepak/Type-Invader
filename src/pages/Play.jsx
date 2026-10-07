@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import GameCanvas from "../game/GameCanvas.jsx";
-import { startLobbyMusic, stopLobbyMusic } from "../lobbyMusic.js";
+import { startLobbyMusic } from "../lobbyMusic.js";
 
 /** Opens a server-timed run and commits its result through Supabase RPC. */
 export default function Play() {
@@ -16,7 +16,7 @@ export default function Play() {
   const sessionRef = useRef(null);
 
   useEffect(() => {
-    stopLobbyMusic();
+    startLobbyMusic();
     return () => startLobbyMusic();
   }, []);
 
