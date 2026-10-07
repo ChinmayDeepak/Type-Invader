@@ -11,7 +11,6 @@
    ===================================================================== */
 import { GAME_TEMPLATE } from "./template.js";
 import "./game.css";
-import { startLobbyMusic, stopLobbyMusic, configureLobbyMusic } from "../lobbyMusic.js";
 
 export function startTypeInvader(host, opts = {}) {
   host.innerHTML = GAME_TEMPLATE;
@@ -117,101 +116,78 @@ export function startTypeInvader(host, opts = {}) {
   };
 
   /* ═════════ background music ═════════
-     Deliberately NOT routed through the SFX graph above, so the two mute buttons
-     are fully independent. Volume is lerped in the frame loop so starting and
-     stopping fades instead of clipping. */
-  /* One <audio> element per track. Every element fades independently in
-     musicTick, so a round change crossfades instead of cutting.
-
-     Files live in frontend/public/ and are served from the site root:
-        public/music1.mp3   round 1
-        public/music2.mp3   round 2
-        public/music3.mp3   round 3
-        public/music4.mp3   boss round
-        public/music5.mp3   game over   (optional - SND.gameoverTune() covers it)
-
-     A missing file is not an error. Its 404 marks that key dead and the engine
-     skips it, exactly as the old single-track build did. */
+     One track per stage. Switch at the stage banner in the same browser
+     gesture as PLAY for stage 1. Pause the outgoing file immediately, including
+     any pending play() promise, so tracks never overlap on a stage change or
+     carry through to the results screen. Music and SFX remain independent. */
   const MUSIC_SRC={1:'/music1.mp3',2:'/music2.mp3',3:'/music3.mp3',
                    boss:'/music4.mp3',over:'/music5.mp3'};
-  /* ── MUSIC_DELAY ────────────────────────────────────────────────────
-     Seconds between a stage starting and its track coming in, so the
-     "STAGE 1 / ROOKIE FACTORY" banner lands in silence first.
-     1 = one second. 0 = old behaviour (music the instant PLAY is hit).
-     Counted down in musicTick, so it needs no timers to clean up.      */
-  const MUSIC_DELAY=1.0;
-  const MUS={els:{},dead:{},key:null,playing:false,wait:0,next:null};
+  const MUS={els:{},dead:{},key:null,playing:false};
   const musTarget=()=>(MUS.playing&&CFG.music)?clamp(CFG.vol,0,100)/100:0;
+  const musicMissing=()=>Object.keys(MUSIC_SRC).every(k=>MUS.dead[k]);
   function trackEl(key){
     if(MUS.dead[key])return null;
     if(MUS.els[key])return MUS.els[key];
     const src=MUSIC_SRC[key];if(!src)return null;
     const a=new Audio(src);
-    a.loop=(key!=='over');            // the death cue plays once, then stops
+    a.loop=(key!=='over');
     a.preload='auto';a.volume=0;
     on(a,'error',()=>{if(destroyed)return;MUS.dead[key]=true;delete MUS.els[key];applyCfg()});
     MUS.els[key]=a;return a;
   }
-  /* Ask for every file at boot so round changes are gapless and a missing
-     track is known long before the player reaches it. */
   function musicPreload(){for(const k in MUSIC_SRC)trackEl(k)}
-  /* which track belongs to which round */
   const trackKeyFor=stage=>stage>=BOSS_STAGE?'boss':String(((stage-1)%NORMAL_STAGES)+1);
-  /* Queue a track. delay defaults to MUSIC_DELAY; pass 0 for an instant
-     switch. The outgoing track keeps playing through the wait and then fades
-     itself out in musicTick, so a stage change crossfades rather than gapping. */
-  function musicSwitch(key,rewind,delay){
-    if(MUS.key===key&&!rewind&&!MUS.next)return;
-    const d=(delay==null?MUSIC_DELAY:delay);
-    if(d>0){MUS.next={key:key,rewind:!!rewind};MUS.wait=d;musicPrime(key);return}
-    musicCommit(key,rewind);
+  function pauseTrack(a){
+    a.pause();a.volume=0;
+    try{a.currentTime=0}catch(e){}
   }
-  function musicCommit(key,rewind){
-    MUS.next=null;MUS.wait=0;MUS.key=key;
+  function playTrack(a){
+    if(!a||a._tiPending||!a.paused)return;
+    let p;
+    try{p=a.play()}catch(e){return}
+    if(p&&p.then){
+      a._tiPending=true;
+      p.catch(()=>{}).finally(()=>{
+        a._tiPending=false;
+        // A slow play() may resolve after a stage switch or result screen.
+        if(destroyed||MUS.els[MUS.key]!==a||!MUS.playing||!CFG.music)pauseTrack(a);
+      });
+    }
+  }
+  function musicStop(){
+    MUS.key=null;
+    for(const a of Object.values(MUS.els))pauseTrack(a);
+  }
+  function musicSwitch(key,rewind){
+    if(MUS.key===key&&!rewind)return;
+    musicStop();
+    MUS.key=key;
     const a=trackEl(key);if(!a)return;
-    if(rewind){try{a.currentTime=0}catch(e){}}
-    if(MUS.playing&&CFG.music){const p=a.play();if(p&&p.catch)p.catch(()=>{})}
+    // Sound begins at the banner, not after a timer or silent preload.
+    a.volume=musTarget();
+    if(MUS.playing&&CFG.music&&CFG.vol)playTrack(a);
   }
-  /* Browsers only allow play() once the user has interacted with the page.
-     A delayed start runs a second later, outside the click that caused it, so
-     unlock the element inside the gesture: start it and stop it immediately.
-     Volume is already 0, so nothing is audible and currentTime stays at the
-     top of the track. Without this the delay can silently kill the music. */
-  function musicPrime(key){
-    const a=trackEl(key);if(!a)return;
-    const p=a.play();
-    if(p&&p.then)p.then(()=>{a.pause();try{a.currentTime=0}catch(e){}}).catch(()=>{});
-    else{try{a.pause();a.currentTime=0}catch(e){}}
+  function musicSyncStage(){
+    const key=trackKeyFor(G.stage);
+    if(MUS.key!==key)musicSwitch(key,true);
   }
-  /* Silence. Cancels a queued track and drops the current key, so musicTick
-     ramps whatever is audible down to zero and pauses it. Used the moment a
-     stage banner appears, so the walk to the next map happens in silence. */
-  function musicStop(){MUS.next=null;MUS.wait=0;MUS.key=null}
-  /* Starts this stage's track from its beginning, MUSIC_DELAY after the
-     CONTACT banner. Safe to call on every fight. */
-  function musicSyncStage(){musicSwitch(trackKeyFor(G.stage),true)}
-  /* on=true starts/resumes the current track, rewind=true restarts it from zero */
   function musicSet(on,rewind){
     MUS.playing=!!on;
-    if(!on||!CFG.music)return;
-    if(MUS.next)return;                 // a delayed switch will start it
+    if(!on||!CFG.music||!CFG.vol){
+      for(const a of Object.values(MUS.els)){a.pause();a.volume=0}
+      return;
+    }
     const a=trackEl(MUS.key);if(!a)return;
     if(rewind){try{a.currentTime=0}catch(e){}}
-    const p=a.play();if(p&&p.catch)p.catch(()=>{});
+    a.volume=musTarget();
+    playTrack(a);
   }
   function musicTick(dt){
-    if(MUS.next){                       // the MUSIC_DELAY countdown
-      MUS.wait-=dt;
-      if(MUS.wait<=0)musicCommit(MUS.next.key,MUS.next.rewind);
-    }
-    const want=musTarget();
-    for(const k in MUS.els){
-      const a=MUS.els[k];if(!a)continue;
-      const target=(k===MUS.key)?want:0;      // anything not current fades to 0
-      const v=a.volume+(target-a.volume)*Math.min(1,dt*(target>a.volume?2.4:4.5));
-      a.volume=clamp(v<.004?0:v,0,1);
-      if(!target&&!a.volume&&!a.paused)a.pause();
-      else if(target&&a.paused&&MUS.playing){const p=a.play();if(p&&p.catch)p.catch(()=>{})}
+    const a=trackEl(MUS.key);
+    if(a&&MUS.playing&&CFG.music){
+      const target=musTarget();
+      a.volume=clamp(a.volume+(target-a.volume)*Math.min(1,dt*8),0,1);
+      if(!target&&!a.paused)a.pause();
     }
   }
 
@@ -308,14 +284,14 @@ export function startTypeInvader(host, opts = {}) {
     const quiet=!CFG.music||!CFG.vol;
     $('mSfx').classList.toggle('off',!CFG.snd);
     $('mMusic').classList.toggle('off',quiet);
-    configureLobbyMusic(CFG.music,CFG.vol);
-    $('mMusic').classList.remove('gone');
-    $('mMusic').title=quiet?'Music off':'Music on \u00b7 '+CFG.vol;
+    const noFiles=musicMissing();
+    $('mMusic').classList.toggle('gone',noFiles);
+    $('mMusic').title=noFiles?'no music files in public/':(quiet?'Music off':'Music on \u00b7 '+CFG.vol);
     $('mSfx').title=CFG.snd?'Game sound on':'Game sound off';
     // both sliders show the same number and the same filled track
     const fill='linear-gradient(90deg,#5f8a34 0 '+CFG.vol+'%,#101a0d '+CFG.vol+'% 100%)';
     for(const id of['vol','volS']){const el=$(id);if(!el)continue;
-      el.value=CFG.vol;el.style.background=fill;el.disabled=false}
+      el.value=CFG.vol;el.style.background=fill;el.disabled=noFiles}
     $('volN').textContent=CFG.vol;$('volSN').textContent=CFG.vol;
     // turning music back on mid-run picks the track straight back up
     if(CFG.music&&MUS.playing)musicSet(true,false);
@@ -580,9 +556,9 @@ export function startTypeInvader(host, opts = {}) {
       +(isBossStage()?' · BOSS':'');
   }
   function beginWalk(newStage){
-    /* The stage name is on screen now. Cut the old stage's track here; the
-       next one is queued by beginFight() when CONTACT appears. */
-    musicStop();
+    // The stage banner marks the music boundary. Stage 1 is switched from the
+    // PLAY click; later stages switch when their banner appears.
+    musicSwitch(trackKeyFor(G.stage),true);
     G.state='walk';
     G.stopZ=cam.z+(G.total===0?15:22);
     if(newStage){G.blackout=1;G.pendingStage=1}
@@ -590,7 +566,7 @@ export function startTypeInvader(host, opts = {}) {
   }
   function beginFight(){
     G.state='fight';G.total++;
-    musicSyncStage();                 // round 1/2/3 track, or the boss track
+    musicSyncStage();                 // keep this stage track running through CONTACT
     G.boss=null;G.summonQ.length=0;G.bubbleT=0;G.bossTimer=0;G.typoCd=0;G.bossIn=0;
     if(isBossStage()){
       G.spawnLeft=0;
@@ -863,19 +839,17 @@ export function startTypeInvader(host, opts = {}) {
   on(host,'click',e=>{
     const b=e.target.closest('[data-go]');if(!b)return;SND.ui();ac();
     const go=b.dataset.go;
-    if(go==='play'){stopLobbyMusic();reset(true);hideAll();$('hud').classList.add('on');$('snd').classList.add('game');
+    if(go==='play'){reset(true);hideAll();$('hud').classList.add('on');$('snd').classList.add('game');
       showHack(true);
       document.body.classList.add('ti-running');
       objective('STAGE 1','ROOKIE FACTORY',1.3);SND.stage();
-      musicSet(true,false);musicPrime(trackKeyFor(1));beginWalk(false)}
+      beginWalk(false);musicSet(true,false)}
     else if(go==='settings'){G.state='settings';show('settings')}
     else if(go==='menu'){G.state='menu';show('menu');$('hud').classList.remove('on');
       $('snd').classList.remove('game');showHack(false);musicSet(false);musicStop();
-      document.body.classList.remove('ti-running');reset(false);
-      for(const audio of Object.values(MUS.els)){audio.pause();audio.volume=0}
-      startLobbyMusic()}
+      document.body.classList.remove('ti-running');reset(false)}
     else if(go==='resume')pause(false);
-    else if(go==='exit'){stopLobbyMusic();musicSet(false);document.body.classList.add('off');
+    else if(go==='exit'){musicSet(false);document.body.classList.add('off');
       later(()=>{document.body.classList.remove('off');G.state='exit';show('exit')},520)}
   });
   const mmss=t=>{const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+(s<10?'0':'')+s};
@@ -887,13 +861,14 @@ export function startTypeInvader(host, opts = {}) {
     G.won=!!won;G.state='over';
     showHack(false);
     document.body.classList.remove('ti-running');   // navbar becomes usable again
+    musicStop();                         // never carry a stage track onto results
     if(won){
-      musicSet(false);                   // victory: the round track fades out
+      musicSet(false);                   // victory: results are silent
       SND.win();
     }else{
       SND.dead();
       if(!MUS.dead.over&&CFG.music&&CFG.vol){
-        musicSwitch('over',true,0);musicSet(true,false);  // public/music5.mp3, no delay
+        musicSwitch('over',true);musicSet(true,false);  // public/music5.mp3, no delay
       }else{
         musicSet(false);SND.gameoverTune();              // no file: synth cue
       }
@@ -1470,7 +1445,7 @@ export function startTypeInvader(host, opts = {}) {
       timers.clear();
       _off.forEach((f) => f());
       try { musicSet(false); } catch (e) { /* audio may never have started */ }
-      MUS.next=null;MUS.wait=0;
+      musicStop();
       for (const audio of Object.values(MUS.els)) {
         audio.pause();
         audio.removeAttribute('src');
@@ -1479,7 +1454,6 @@ export function startTypeInvader(host, opts = {}) {
       if (A.c && A.c.state !== 'closed') A.c.close().catch(() => {});
       document.body.classList.remove('ti-game', 'ti-running', 'off');
       host.innerHTML = "";
-      startLobbyMusic();
     },
   };
 }
