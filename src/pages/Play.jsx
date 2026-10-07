@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import GameCanvas from "../game/GameCanvas.jsx";
+import { startLobbyMusic, stopLobbyMusic } from "../lobbyMusic.js";
 
 /** Opens a server-timed run and commits its result through Supabase RPC. */
 export default function Play() {
@@ -13,6 +14,11 @@ export default function Play() {
 
   // The engine mounts once, so the current runId must live in a ref, not state.
   const sessionRef = useRef(null);
+
+  useEffect(() => {
+    stopLobbyMusic();
+    return () => startLobbyMusic();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
